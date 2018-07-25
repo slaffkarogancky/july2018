@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -24,20 +24,28 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import golden.horde.core.PingEvent;
 import golden.horde.domain.Animal;
 import golden.horde.exception.EntityNotFoundedException;
-import golden.horde.service.AnimalService;
+import golden.horde.service.IAnimalService;
 
 @RestController
 @RequestMapping("/zoo/api/v1")
 public class ZooController {
 
-	@Autowired
-	private AnimalService animalService;
+	private final IAnimalService animalService;	
+	
+	private ApplicationEventPublisher applicationEventPublisher;
+	
+	public ZooController(IAnimalService animalService, ApplicationEventPublisher applicationEventPublisher) {
+		this.animalService = animalService;
+		this.applicationEventPublisher = applicationEventPublisher;
+	}
 
 	// http://localhost:2018/zoo/api/v1/ping
 	@GetMapping(value = "/ping")
 	public ResponseEntity<String> ping(HttpServletRequest request, HttpServletResponse response, Principal principal) {
+		applicationEventPublisher.publishEvent(new PingEvent("Кто-то распинговался"));
 		return new ResponseEntity<>(LocalDateTime.now() + " PONG!!!", HttpStatus.OK);
 	}
 
@@ -70,7 +78,7 @@ public class ZooController {
 	@PutMapping(value = "/animal/{id}")
 	@ResponseStatus(HttpStatus.OK)
 	public void updateAnimal(@Valid @RequestBody Animal animal, @PathVariable int id) {
-		checkAnimalIdExists(id);
+		validateAnimalId(id);
 		animal.setId(id);
 		animalService.updateAnimal(animal);
 	}
@@ -78,11 +86,11 @@ public class ZooController {
 	@DeleteMapping(value = "/animal/{id}")
 	@ResponseStatus(HttpStatus.OK)
 	public void deleteAnimal(@PathVariable int id) {
-		checkAnimalIdExists(id);
+		validateAnimalId(id);
 		animalService.deleteAnimal(id);
 	}
-	
-	private void checkAnimalIdExists(int id) {
+
+	private void validateAnimalId(int id) {
 		if (animalService.getAnimalById(id) == null) {
 			throw new EntityNotFoundedException(String.format("\"Animal with id %s not found", id));
 		}

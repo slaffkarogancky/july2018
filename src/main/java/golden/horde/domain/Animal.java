@@ -7,7 +7,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.validation.constraints.Size;
 
+import golden.horde.validation.Prohibited;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,5 +27,7 @@ public class Animal {
 	private Integer id;
 	
 	@Column(name="animal_name")
+	@Size(min=3, max=50)
+	@Prohibited("аллигатор")
 	private String animalName;
 }
